@@ -1,0 +1,25 @@
+.map {
+    flex-grow: 4;
+    text-align: center;
+  }
+.chat {
+    text-align: center;
+    flex-grow: 1;
+    height: 100vh; /* Set a fixed height for the container */
+  }
+  
+  .chat::-webkit-scrollbar {
+    width: 5px; /* Set the width of the scrollbar */
+  }
+  
+  .chat::-webkit-scrollbar-thumb {
+    background-color: #888; /* Set the color of the thumb */
+    border-radius: 5px; /* Set the border radius of the thumb */
+  }
+  
+  /* Clear floats after the columns */
+
+  .flex-container {
+    display: flex;
+  }
+  
