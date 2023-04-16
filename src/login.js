@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -8,6 +8,11 @@ import Toast from 'react-bootstrap/Toast';
 import ToastContainer from 'react-bootstrap/ToastContainer';
 import ListGroup from 'react-bootstrap/ListGroup';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import Col from 'react-bootstrap/Col';
+import Form from 'react-bootstrap/Form';
+import Row from 'react-bootstrap/Row';
+import Button from 'react-bootstrap/Button';
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
 
 import personIconUrl from './Icons/person.png';
 import restaurantIconUrl from './Icons/restaurant.png';
@@ -20,6 +25,8 @@ const Login = () => {
     const [loged,setLoged] = useState(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [websocket, setWebsocket] = useState(null);
+
     const [users, setUsers] = useState({})
     const [restaurants, setRestaurants] = useState({})
     const [destinations, setDestinations] = useState({})
@@ -27,6 +34,7 @@ const Login = () => {
     const [positions, setPositions] = useState({})
     const [chat, setChat] = useState({})
     const [status, setStatus] = useState({})
+    const [product,setProduct] = useState({})
 
 
     function generateBasicAuthToken(email, studentNumber) {
@@ -38,6 +46,7 @@ const Login = () => {
     function joinWebSocket(username, password) {
       const token = generateBasicAuthToken(username, password);
       const ws = new WebSocket(url);
+      setWebsocket(ws);
       setLoged(true);
     
       ws.addEventListener('open', (event) => {
@@ -103,7 +112,7 @@ const Login = () => {
           case "DELIVERY_STATUS":
             const newD = {};
             newD[data.delivery_id] = data.payload;
-            setStatus((statust) => ({ ...status, ...newD }));
+            setStatus((status) => ({ ...status, ...newD }));
           break;
           default:
             console.log("unknown")
@@ -115,6 +124,12 @@ const Login = () => {
         // Handle WebSocket errors here
       });
     }
+
+/*     useEffect(() => {
+      console.log(status)
+    },[status]); */
+
+
 
 
 
@@ -166,117 +181,233 @@ const Login = () => {
         </Toast>
       )
     }
+
+    function sendMessage(ws, message) {
+      ws.send(JSON.stringify({
+        "type": 'MESSAGE',
+        "payload": {
+          "content": message,
+        }
+      }));
+    }
+
+    //order
+
+    function sendOrder(restaurant_id,product_id,destination) {
+      websocket.send(JSON.stringify({
+        "type": 'ORDER',
+        "payload": {
+          "restaurant_id": restaurant_id,
+          "product_id": product_id,
+          "destination": destination
+          }
+      }));
+    }
+
+    async function getProdut(){
+      await fetch(`https://tarea-1.2023-1.tallerdeintegracion.cl/courses?size=100`, {method: "GET"})
+      .then((response) => response.json())
+      .then((data) => {
+        setProduct(data);
+        console.log("product",data)
+      });
+    };
+    useEffect(() => {
+      getProdut()
+    },[]);
     
-   
   return(
     <div class="flex-container">
-      <div class="map">
-        {!loged ? (
-          <>
-            <h1>Iniciar sesión</h1>
-            <form>
-              <label>
-                Usuario:
-                <input type="text" value={username} onChange={(event) => setUsername(event.target.value)} />
-              </label>
-              <br />
-              <label>
-                Contraseña:
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
-              </label>
-              <br />
-              <button type="submit" onClick={(event) => {
-                event.preventDefault();
-                joinWebSocket(username, password);
-              }}>Conectar</button>
-            </form>
-          </>
-        ):(    
-        <>
-        <h1>Mapa</h1>
-          <MapContainer center={[-33.45, -70.6]} zoom={12} scrollWheelZoom={false} style={{height: "90vh", width: "100%"}}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {Object.values(restaurants).length > 0 ? (
-              Object.values(restaurants).map((r) => {
-                return (
-                  <Marker position={[r.position.lat, r.position.long]} key={r.id} icon={restaurantIcon}>
-                    <Popup>{r.name}</Popup>
-                  </Marker>
-                );
-              })
-            ) : (
-              <></>
-            )}
-
-            {Object.values(destinations).length > 0 ? (
-              Object.values(destinations).map((r) => {
-                return (
-                  <Marker position={[r.position.lat, r.position.long]} key={r.id} icon={personIcon}>
-                    <Popup>{r.name}</Popup>
-                  </Marker>
-                );
-              })
-            ) : (
-              <></>
-            )}
-
-            {Object.values(positions).length > 0 ? (
-              Object.values(positions).map((r) => {
-                const del = deliveries[r.delivery_id];
-                if (del){
+      {!loged ? (
+        <div > 
+          <h1>Iniciar sesión</h1>
+          <form>
+            <label>
+              Usuario:
+              <input type="text" value={username} onChange={(event) => setUsername(event.target.value)} />
+            </label>
+            <br />
+            <label>
+              Contraseña:
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            </label>
+            <br />
+            <button type="submit" onClick={(event) => {
+              event.preventDefault();
+              joinWebSocket(username, password);
+            }}>Conectar</button>
+          </form>
+        </div>
+      ):(    
+      <>
+        <div class="map">
+          <h1 style={{color: 'white',backgroundColor : "black"}}>Mapa</h1>
+            <MapContainer center={[-33.45, -70.6]} zoom={12} scrollWheelZoom={false} style={{height: "70vh", width: "100%"}}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {Object.values(restaurants).length > 0 ? (
+                Object.values(restaurants).map((r) => {
                   return (
-                    <Marker position={[r.position.lat, r.position.long]} key={r.id} icon={deliverIcon}>
-                      <Popup>{printInfo(del)}</Popup>
+                    <Marker position={[r.position.lat, r.position.long]} key={r.id} icon={restaurantIcon}>
+                      <Popup>{r.name}</Popup>
                     </Marker>
                   );
-                }
-                return null;
-              })
-            ) : (
-              <></>
-            )}
-                    
-            {Object.values(deliveries).length > 0 ? (
-              Object.values(deliveries).map((r) => {
-                const res = restaurants[r.restaurant_id];
-                const dest = destinations[r.destination_id];
-                if (res && dest){
+                })
+              ) : (
+                <></>
+              )}
+
+              {Object.values(destinations).length > 0 ? (
+                Object.values(destinations).map((r) => {
                   return (
-                    <Polyline positions={[[res.position.lat,res.position.long], [dest.position.lat,dest.position.long]]} color={'green'} weight ={4} />
+                    <Marker position={[r.position.lat, r.position.long]} key={r.id} icon={personIcon}>
+                      <Popup>{r.name}</Popup>
+                    </Marker>
                   );
-                }
-                return null;
-              })
-            ) : (
-              <></>
-            )}
-          </MapContainer>
-        </>)}
-      </div>
+                })
+              ) : (
+                <></>
+              )}
 
-      <div className = "chat">
-      <h1 style={{color: 'white',backgroundColor : "black"}}>Chat</h1>
-        <div
-          aria-live="polite"
-          aria-atomic="true"
-          className="bg-dark position-relative"
-          style={{ height: '90%', overflow: 'auto' }}
-        >
-          <ToastContainer position="bottom-center" className="p-3">
-          {Object.values(chat).length > 0 ? (
-            Object.values(chat).map((r) => {
-              return(printChat(r))
-            })
-          ) : (
-            <></>
-          )}
-          </ToastContainer>
-        </div>
+              {Object.values(positions).length > 0 ? (
+                Object.values(positions).map((r) => {
+                  const del = deliveries[r.delivery_id];
+                  if (del){
+                    return (
+                      <Marker position={[r.position.lat, r.position.long]} key={r.id} icon={deliverIcon}>
+                        <Popup>{printInfo(del)}</Popup>
+                      </Marker>
+                    );
+                  }
+                  return null;
+                })
+              ) : (
+                <></>
+              )}
+                      
+              {Object.values(deliveries).length > 0 ? (
+                Object.values(deliveries).map((r) => {
+                  const res = restaurants[r.restaurant_id];
+                  const dest = destinations[r.destination_id];
+                  const post = positions[r.delivery_id];
 
-      </div>
+                  if (res && dest){
+                    return (
+                      <Polyline positions={[[res.position.lat,res.position.long], [dest.position.lat,dest.position.long]]} color={'green'} weight ={3} />
+                    );
+                  }
+                  if (res && dest && post && status[r.id] === "ON_THE_WAY"){
+                    return (
+                      <Polyline positions={[[res.position.lat,res.position.long], [post.position.lat,post.position.long]]} color={'red'} weight ={2} />
+                    );
+                  }
+                  return null;
+                })
+              ) : (
+                <></>
+              )}
+            </MapContainer>
+              <Row className="g-2">
+                <Col>
+                  <FloatingLabel
+                    controlId="floatingSelectGrid"
+                    label="Restaurant"
+                  >
+                    <Form.Select id="rest" aria-label="Floating label select example">
+                      {Object.values(restaurants).length > 0 ? (
+                        Object.values(restaurants).map((r) => {
+                          return (
+                            <option value={r.id}>{r.name}</option>
+                          );
+                        })
+                      ) : (
+                        <></>
+                      )}
+                    </Form.Select>
+                  </FloatingLabel>
+                </Col>
+                <Col>
+                  <FloatingLabel
+                    controlId="floatingSelectGrid"
+                    label="Destino"
+                  >
+                    <Form.Select id="dest" aria-label="Floating label select example">
+                      {Object.values(destinations).length > 0 ? (
+                        Object.values(destinations).map((r) => {
+                          return (
+                            <option value={r.id}>{r.name}</option>
+                          );
+                        })
+                      ) : (
+                        <></>
+                      )}
+                    </Form.Select>
+                  </FloatingLabel>
+                </Col>
+                <Col>
+                  <FloatingLabel
+                    controlId="floatingSelectGrid"
+                    label="Plato"
+                  >
+                    <Form.Select id="prod" aria-label="Floating label select example">
+                    {Object.values(product.items).length > 0 ? (
+                        Object.values(product.items).map((r) => {
+                          console.log("--",r)
+                          return (
+                            <option value={r.id}>{r.name}</option>
+                          );
+                        })
+                      ) : (
+                        <></>
+                      )}
+                    </Form.Select>
+                  </FloatingLabel>
+                </Col>
+                <Button variant="primary" onClick = {() => sendOrder(document.getElementById('rest').value,document.getElementById('prod').value,document.getElementById('dest').value)}>
+                  Submit
+                </Button>
+                
+              </Row>
+          </div>
+        
+          <div className = "chat">
+            <h1 style={{color: 'white',backgroundColor : "black"}}>Chat</h1>
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              className="bg-dark position-relative"
+              style={{ height: '70%', overflow: 'auto' }}
+            >
+              <ToastContainer position="bottom-center" className="p-3">
+              {Object.values(chat).length > 0 ? (
+                Object.values(chat).map((r) => {
+                  return(printChat(r))
+                })
+              ) : (
+                <></>
+              )}
+              </ToastContainer>
+            </div>
+
+            <Form>
+              <Form.Group as={Row} className="mb-3" controlId="formPlaintextPassword">
+                <FloatingLabel
+                    controlId="floatingSelectGrid"
+                    label="Mensaje"
+                >
+                  <Form.Control id="mensaje"/>
+                </FloatingLabel>
+              </Form.Group>
+              <Button variant="primary" onClick = {() => sendMessage(websocket,document.getElementById('mensaje').value)}>
+                Submit
+              </Button>
+            </Form>
+
+          </div>
+        </>
+        )}
     </div>
   )
 };
