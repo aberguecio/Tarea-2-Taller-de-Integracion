@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet'
+import React, {useState} from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import "./login.css";
@@ -44,7 +44,7 @@ const Login = () => {
         ws.send(JSON.stringify({
           "type": 'JOIN',
           "payload": {
-            "authorization":'Basic dGFyZWEyQHRhbGxlcmRlaW50ZWdyYWNpb24uY2w6MTIzNDU2Nzg='// `${token}`, //'Basic dGFyZWEyQHRhbGxlcmRlaW50ZWdyYWNpb24uY2w6MTIzNDU2Nzg='
+            "authorization": `${token}`, //'Basic dGFyZWEyQHRhbGxlcmRlaW50ZWdyYWNpb24uY2w6MTIzNDU2Nzg='
           }
         }));
       });
@@ -233,6 +233,7 @@ const Login = () => {
                     </Marker>
                   );
                 }
+                return null;
               })
             ) : (
               <></>
@@ -247,6 +248,7 @@ const Login = () => {
                     <Polyline positions={[[res.position.lat,res.position.long], [dest.position.lat,dest.position.long]]} color={'green'} weight ={4} />
                   );
                 }
+                return null;
               })
             ) : (
               <></>
